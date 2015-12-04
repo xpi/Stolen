@@ -1,9 +1,13 @@
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -11,10 +15,9 @@ import org.jsoup.select.Elements;
 
 public class Stolen {
     static String downloadPath = "/Volumes/storage/";
-
+    static Map<Integer,Integer> trys = new HashMap<Integer,Integer>();
     public static String[] sto(int id) {
         Document doc;
-
         try {
             doc = Jsoup.connect(
                     "http://www.xianayi.net/template/default/images/ajax.php?action=geturl&id="
@@ -44,6 +47,9 @@ public class Stolen {
             name_url[0] = fullName;
             name_url[1] = mp3url;
             return name_url;
+        } catch (SocketTimeoutException ste){
+            System.out.println("SocketTimeoutException!!!!!!!");
+            return sto(id);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -73,6 +79,15 @@ public class Stolen {
     public static void main(String[] args) throws Exception {
 
         new Thread(new Spide(1, 1000)).start();
+        new Thread(new Spide(1001, 2000)).start();
+        new Thread(new Spide(2001, 3000)).start();
+        new Thread(new Spide(3001, 4000)).start();
+        new Thread(new Spide(4001, 5000)).start();
+        new Thread(new Spide(5001, 6000)).start();
+        new Thread(new Spide(6001, 7000)).start();
+        new Thread(new Spide(7001, 8000)).start();
+        new Thread(new Spide(8001, 8412)).start();
+
     }
 
 
@@ -94,16 +109,19 @@ class Spide implements Runnable {
             Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.2.1:3306/latin_music", "root", "");
             Statement state = conn.createStatement();
             for (int i = from; i <= end; i++) {
+                System.out.println(i);
                 if (null != Stolen.sto(i)) {
                     PreparedStatement pstate =  conn.prepareStatement("insert into xianayi(id,music_name,url) values(?,?,?)");
                     if(conn.createStatement().executeQuery("select * from xianayi where id = "+i).next()){
                         continue;
                     };
-                    pstate.setInt(1,i);
+                    pstate.setInt(1, i);
                     pstate.setString(2, Stolen.sto(i)[0]);
-                    pstate.setString(3,Stolen.sto(i)[1]);
+                    pstate.setString(3, Stolen.sto(i)[1]);
                     pstate.execute();
-                    System.out.println(i);
+
+                }else{
+                    System.out.println(i+"bad url");
                 }
             }
 
