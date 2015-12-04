@@ -23,32 +23,46 @@ public class Stolen {
                     "http://www.xianayi.net/template/default/images/ajax.php?action=geturl&id="
                             + id + "&amp;play_mode=1").get();
             Elements els = doc.select("m");
+
             if (els.size() <= 0) {
                 return null;
             }
-
             String fullName = els.attr("label");
             String mp3url = els.attr("src");
+
             if (!mp3url.endsWith(".mp3")) {
                 mp3url += ".mp3";
             }
-
             String filename = mp3url.substring(mp3url.lastIndexOf("/") + 1);
-            String prefix = "http://a6.xianayi.net/music/";
+            String prefix1 = "http://a6.xianayi.net/music/";
+            String prefix2 = "http://www.xianayi.net/";
 
-            if (!mp3url.contains("down2.php")) {
-                mp3url = prefix + filename;
-            } else {
+            if (mp3url.contains("down2.php")) {
                 String[] strs = mp3url.split("down2.php\\?");
                 mp3url = strs[0] + strs[1];
+            }else if(!mp3url.contains("http://")){
+                mp3url=prefix2+mp3url;
+                System.out.println("not http");
+            } else {
+                mp3url = prefix1 + filename;
+                System.out.println("not down.php");
             }
             fullName = fullName + mp3url.substring(mp3url.lastIndexOf("."));
-            String[] name_url = new String[2];
+            String[] name_url = new String[3];
             name_url[0] = fullName;
             name_url[1] = mp3url;
+//            URL mp3 = new URL(mp3url);
+//            HttpURLConnection conn = (HttpURLConnection) mp3.openConnection();
+//            int mp3len =  conn.getContentLength();
+//            if (mp3len<1000){
+//                System.out.println("bad file");
+//                return null;
+//            }
+            name_url[2] = null;
+
             return name_url;
         } catch (SocketTimeoutException ste){
-            System.out.println("SocketTimeoutException!!!!!!!");
+            System.out.println("SocketTimeoutException!!!!!!!"+id);
             return sto(id);
         } catch (Exception e) {
             e.printStackTrace();
@@ -59,6 +73,7 @@ public class Stolen {
     public static void download(String fullName, String mp3url) throws Exception {
         URL mp3 = new URL(mp3url);
         HttpURLConnection conn = (HttpURLConnection) mp3.openConnection();
+        System.out.println( conn.getContentLength());
         conn.setReadTimeout(2000);
         FileOutputStream fos = new FileOutputStream(downloadPath + fullName);
         InputStream is = conn.getInputStream();
@@ -77,7 +92,6 @@ public class Stolen {
     }
 
     public static void main(String[] args) throws Exception {
-
         new Thread(new Spide(1, 1000)).start();
         new Thread(new Spide(1001, 2000)).start();
         new Thread(new Spide(2001, 3000)).start();
@@ -108,22 +122,24 @@ class Spide implements Runnable {
         try {
             Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.2.1:3306/latin_music", "root", "");
             Statement state = conn.createStatement();
+            String[] values = null;
             for (int i = from; i <= end; i++) {
-                System.out.println(i);
-                if (null != Stolen.sto(i)) {
-                    PreparedStatement pstate =  conn.prepareStatement("insert into xianayi(id,music_name,url) values(?,?,?)");
+                if ((values= Stolen.sto(i))!=null) {
+                    PreparedStatement pstate =  conn.prepareStatement("insert into xianayi(id,music_name,url,music_size) values(?,?,?,?)");
                     if(conn.createStatement().executeQuery("select * from xianayi where id = "+i).next()){
                         continue;
                     };
                     pstate.setInt(1, i);
-                    pstate.setString(2, Stolen.sto(i)[0]);
-                    pstate.setString(3, Stolen.sto(i)[1]);
+                    pstate.setString(2,values[0]);
+                    pstate.setString(3,values[1]);
+                    pstate.setString(4,values[2]);
                     pstate.execute();
-
+                    pstate.close();
                 }else{
                     System.out.println(i+"bad url");
                 }
             }
+            conn.close();
 
         } catch (Exception e) {
             e.printStackTrace();
