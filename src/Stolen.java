@@ -51,14 +51,14 @@ public class Stolen {
             String[] name_url = new String[3];
             name_url[0] = fullName;
             name_url[1] = mp3url;
-//            URL mp3 = new URL(mp3url);
-//            HttpURLConnection conn = (HttpURLConnection) mp3.openConnection();
-//            int mp3len =  conn.getContentLength();
-//            if (mp3len<1000){
-//                System.out.println("bad file");
-//                return null;
-//            }
-            name_url[2] = null;
+            URL mp3 = new URL(mp3url);
+            HttpURLConnection conn = (HttpURLConnection) mp3.openConnection();
+            int mp3len =  conn.getContentLength();
+            if (mp3len<2000){
+                System.out.println("bad file");
+                return null;
+            }
+            name_url[2] = mp3len+"";
 
             return name_url;
         } catch (SocketTimeoutException ste){
@@ -92,7 +92,7 @@ public class Stolen {
     }
 
     public static void main(String[] args) throws Exception {
-        new Thread(new Spide(1, 1000)).start();
+        new Thread(new Spide(800, 1000)).start();
         new Thread(new Spide(1001, 2000)).start();
         new Thread(new Spide(2001, 3000)).start();
         new Thread(new Spide(3001, 4000)).start();
@@ -100,7 +100,7 @@ public class Stolen {
         new Thread(new Spide(5001, 6000)).start();
         new Thread(new Spide(6001, 7000)).start();
         new Thread(new Spide(7001, 8000)).start();
-        new Thread(new Spide(8001, 8412)).start();
+       // new Thread(new Spide(8001, 8412)).start();
 
     }
 
@@ -120,11 +120,11 @@ class Spide implements Runnable {
     public void run() {
 
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.2.1:3306/latin_music", "root", "");
-            Statement state = conn.createStatement();
             String[] values = null;
             for (int i = from; i <= end; i++) {
                 if ((values= Stolen.sto(i))!=null) {
+                    Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.2.1:3306/latin_music", "root", "");
+
                     PreparedStatement pstate =  conn.prepareStatement("insert into xianayi(id,music_name,url,music_size) values(?,?,?,?)");
                     if(conn.createStatement().executeQuery("select * from xianayi where id = "+i).next()){
                         continue;
@@ -135,11 +135,12 @@ class Spide implements Runnable {
                     pstate.setString(4,values[2]);
                     pstate.execute();
                     pstate.close();
+                    conn.close();
+
                 }else{
                     System.out.println(i+"bad url");
                 }
             }
-            conn.close();
 
         } catch (Exception e) {
             e.printStackTrace();
